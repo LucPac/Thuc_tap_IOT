@@ -1,4 +1,4 @@
-// Khởi tạo các phần tử điều khiển
+// Khởi tạo các phần tử điều khiển 
 let btnCallOn = document.querySelector('#btnCallOn');
 let btnCallOff = document.querySelector('#btnCallOff');
 let btnDenOn = document.querySelector('#btnDenOn');
