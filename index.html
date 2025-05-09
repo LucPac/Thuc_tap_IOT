@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart City</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="icon" href="image/logo.png" type="image/png">
+</head>
+<body>
+  <div id="menu-toggle">☰</div>
+
+  <div id="sidebar">
+    <ul>
+      <li><a href="#" onclick="showSection('home')">Trang chủ</a></li>
+      <li><a href="#" onclick="showSection('bieudo')">Biểu đồ</a></li>
+    </ul>
+  </div>
+
+  <header id="header">
+    <div class="header-content">
+      <h1>SMART CITY</h1>
+      <div class="logo-section">
+        <img src="image/spkt.png" alt="Logo" id="logo" />
+        <span>HCMUTE</span>
+      </div>
+    </div>
+  </header>
+
+  <section id="banner">
+    <div class="tag">
+      <button onclick="function_q1()">Quận 1</button>
+      <button onclick="function_q2()">Quận 2</button>
+      <button onclick="function_q3()">Quận 3</button>
+      <button onclick="function_q4()">Quận 4</button>
+    </div>
+  </section>
+
+  <main id="main">
+    <div id="top">
+      <div id="time"></div>
+      <div class="weather-container">
+        <div class="weather-box">
+          <img src="image/nhietdo1.png" alt="Nhiệt độ" class="weather-icon" />
+          <h2>Nhiệt độ</h2>
+          <p id="nhietdo">-- °C</p>
+        </div>
+        <div class="weather-box">
+          <img src="image/doam.png" alt="Độ ẩm" class="weather-icon" />
+          <h2>Độ ẩm</h2>
+          <p id="doam">-- %</p>
+        </div>
+        <div class="weather-box">
+          <img src="image/luongmua1.png" alt="Lượng mưa" class="weather-icon" />
+          <h2>Lượng mưa</h2>
+          <p id="luongmua">-- mm</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="bot">
+      <h2>SOS Controls</h2>
+      <div class="control-container">
+        <div class="control-box">
+          <img src="image/dienthoaitat.png" alt="Call" class="control-icon" id="imgCall" />
+          <div class="btn-group">
+            <button id="btnCallOn">On</button>
+            <button id="btnCallOff">Off</button>
+          </div>
+          <p>Điện thoại</p>
+        </div>
+        <div class="control-box">
+          <img src="image/dentat.png" alt="Đèn" class="control-icon" id="imgDen" />
+          <div class="btn-group">
+            <button id="btnDenOn">On</button>
+            <button id="btnDenOff">Off</button>
+          </div>
+          <p>Đèn</p>
+        </div>
+        <div class="control-box">
+          <img src="image/loatat.png" alt="Loa" class="control-icon" id="imgLoa" />
+          <div class="btn-group">
+            <button id="btnLoaOn">On</button>
+            <button id="btnLoaOff">Off</button>
+          </div>
+          <p>Loa</p>
+        </div>        
+      </div>
+    </div>
+  </main>
+
+  <div id="dynamicContent" style="display: none; text-align: center; padding: 3rem;">
+    <h1 id="dynamicTitle"></h1>
+    <div id="bieudo-content" style="display: none; text-align: center; padding: 3rem;">
+      <h1>Biểu đồ Nhiệt độ, Độ ẩm và Lượng mưa</h1>
+      <div class="chart-container">
+        <canvas id="humidityChart" width="800" height="400"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <footer id="footer">
+    <ul>
+      <li>Nguyễn Phạm Huy Hoàng_22161125</li>
+      <li>Nguyễn Tấn Đạt_22161110</li>
+      <li>Trần Thiện Hiệu_22161122</li>
+    </ul>
+  </footer>
+
+  <script src="https://www.gstatic.com/firebasejs/8.2.10/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.10/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.2.10/firebase-analytics.js"></script>
+
+  <script>
+    var firebaseConfig = {
+      apiKey: "AIzaSyDi-hVmm6UAUZfq2UleQBK81fPvZQFMGvo",
+      authDomain: "tt-iot-web-pro.firebaseapp.com",
+      databaseURL: "https://tt-iot-web-pro-default-rtdb.firebaseio.com",
+      projectId: "tt-iot-web-pro",
+      storageBucket: "tt-iot-web-pro.firebasestorage.app",
+      messagingSenderId: "197108075003",
+      appId: "1:197108075003:web:8a76e0ccd10a738b62a35e",
+      measurementId: "G-9MEZXC417J"
+    };
+    firebase.initializeApp(firebaseConfig);
+    firebase.analytics();
+
+    var nhietDo = document.getElementById('nhietdo');
+    var doAm = document.getElementById('doam');
+    var luongMua = document.getElementById('luongmua');
+
+    var dbRef = firebase.database().ref('quan1');
+    var dbRef2 = firebase.database().ref('quan2');
+    var dbRef3 = firebase.database().ref('quan3');
+    var dbRef4 = firebase.database().ref('quan4');
+
+    let chartInstance = null;
+
+    function renderChart() {
+      const labels = ['Quận 1', 'Quận 2', 'Quận 3', 'Quận 4'];
+      const nhietdoData = [];
+      const doamData = [];
+      const luongmuaData = [];
+
+      Promise.all([
+        dbRef.once('value'),
+        dbRef2.once('value'),
+        dbRef3.once('value'),
+        dbRef4.once('value')
+      ]).then(snapshots => {
+        snapshots.forEach(snap => {
+          const data = snap.val();
+          nhietdoData.push(data?.Nhietdo || 0);
+          doamData.push(data?.Doam || 0);
+          luongmuaData.push(data?.Luongmua || 0);
+        });
+
+        if (chartInstance) {
+          chartInstance.destroy();
+        }
+
+        const ctx = document.getElementById('humidityChart').getContext('2d');
+        chartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Nhiệt độ (°C)',
+                data: nhietdoData,
+                backgroundColor: 'rgba(255, 99, 132, 0.9)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 2,
+                borderRadius: 5
+              },
+              {
+                label: 'Độ ẩm (%)',
+                data: doamData,
+                backgroundColor: 'rgba(54, 162, 235, 0.9)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                borderRadius: 5
+              },
+              {
+                label: 'Lượng mưa (mm)',
+                data: luongmuaData,
+                backgroundColor: 'rgba(75, 192, 192, 0.9)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2,
+                borderRadius: 5
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'Giá trị',
+                  font: { size: 16 }
+                },
+                ticks: { font: { size: 14 } }
+              },
+              x: {
+                title: {
+                  display: true,
+                  text: 'Quận',
+                  font: { size: 16 }
+                },
+                ticks: { font: { size: 14 } }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: {
+                  font: { size: 14 },
+                  boxWidth: 20
+                }
+              },
+              title: {
+                display: true,
+                text: 'Dữ liệu các quận',
+                font: { size: 18 }
+              }
+            }
+          }
+        });
+      });
+    }
+
+    function function_q1(){
+      dbRef.child('Nhietdo').on('value', snap => nhietDo.innerText = snap.val() + ' °C');
+      dbRef.child('Doam').on('value', snap => doAm.innerText = snap.val() + ' %');
+      dbRef.child('Luongmua').on('value', snap => luongMua.innerText = snap.val() + ' mm');
+    }
+    function function_q2(){
+      dbRef2.child('Nhietdo').on('value', snap => nhietDo.innerText = snap.val() + ' °C');
+      dbRef2.child('Doam').on('value', snap => doAm.innerText = snap.val() + ' %');
+      dbRef2.child('Luongmua').on('value', snap => luongMua.innerText = snap.val() + ' mm');
+    }
+    function function_q3(){
+      dbRef3.child('Nhietdo').on('value', snap => nhietDo.innerText = snap.val() + ' °C');
+      dbRef3.child('Doam').on('value', snap => doAm.innerText = snap.val() + ' %');
+      dbRef3.child('Luongmua').on('value', snap => luongMua.innerText = snap.val() + ' mm');
+    }
+    function function_q4(){
+      dbRef4.child('Nhietdo').on('value', snap => nhietDo.innerText = snap.val() + ' °C');
+      dbRef4.child('Doam').on('value', snap => doAm.innerText = snap.val() + ' %');
+      dbRef4.child('Luongmua').on('value', snap => luongMua.innerText = snap.val() + ' mm');
+    }
+
+    function dongho() {
+      var time = new Date();
+      var gio = time.getHours();
+      var phut = time.getMinutes();
+      var giay = time.getSeconds();
+      if (gio < 10) gio = "0" + gio;
+      if (phut < 10) phut = "0" + phut;
+      if (giay < 10) giay = "0" + giay;
+      document.getElementById("time").innerText = gio + ":" + phut + ":" + giay;
+      setTimeout(dongho, 1000);
+    }
+    dongho();
+
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+
+    function showSection(section) {
+      const main = document.getElementById('main');
+      const dynamicContent = document.getElementById('dynamicContent');
+      const dynamicTitle = document.getElementById('dynamicTitle');
+      const bieudoContent = document.getElementById('bieudo-content');
+
+      if (section === 'home') {
+        main.style.display = 'block';
+        dynamicContent.style.display = 'none';
+      } else {
+        main.style.display = 'none';
+        dynamicContent.style.display = 'block';
+        if (section === 'bieudo') {
+          dynamicTitle.innerText = 'Đây là giao diện Biểu đồ';
+          bieudoContent.style.display = 'block';
+          renderChart();
+        }
+      }
+
+      sidebar.classList.remove('open');
+    }
+  </script>
+
+  <script src="function.js"></script>
+</body>
+</html>
